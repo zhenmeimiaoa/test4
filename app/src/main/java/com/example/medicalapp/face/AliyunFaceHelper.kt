@@ -77,20 +77,19 @@ class AliyunFaceHelper {
             .post(formBody)
             .build()
         
-        client.newCall(request).execute().use { response ->
-            val body = response.body?.string() ?: return Pair(0.0, "Empty response")
-            
-            val json = JSONObject(body)
-            if (json.has("Confidence")) {
-                val confidence = json.getDouble("Confidence")
-                Pair(confidence, "Success")
-            } else if (json.has("Code")) {
-                val code = json.getString("Code")
-                val message = json.getString("Message")
-                Pair(0.0, "API Error: $code - $message")
-            } else {
-                Pair(0.0, "Unknown response: $body")
-            }
+        val response = client.newCall(request).execute()
+        val body = response.body?.string() ?: return Pair(0.0, "Empty response")
+        
+        val json = JSONObject(body)
+        return if (json.has("Confidence")) {
+            val confidence = json.getDouble("Confidence")
+            Pair(confidence, "Success")
+        } else if (json.has("Code")) {
+            val code = json.getString("Code")
+            val message = json.getString("Message")
+            Pair(0.0, "API Error: $code - $message")
+        } else {
+            Pair(0.0, "Unknown response: $body")
         }
     }
     
