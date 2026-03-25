@@ -49,16 +49,15 @@ class MainActivity : AppCompatActivity() {
         uri?.let { handleImageSelected(it) }
     }
     
-    // 鎺ユ敹浜鸿劯鎷嶆憚缁撴灉 - 浠庨潤鎬佸彉閲忚鍙?    private val faceCaptureLauncher = registerForActivityResult(
+    private val faceCaptureLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == RESULT_OK) {
-            // 浠庨潤鎬佸彉閲忚幏鍙?Bitmap
             val faceBitmap = FaceCaptureActivity.capturedFaceBitmap
             faceBitmap?.let {
                 LogActivity.addLog("Main", "Face captured successfully, size: ${it.width}x${it.height}")
                 compareFaces(it)
-                // 娓呯┖闈欐€佸彉閲忛伩鍏嶅唴瀛樻硠婕?                FaceCaptureActivity.capturedFaceBitmap = null
+                FaceCaptureActivity.capturedFaceBitmap = null
             } ?: run {
                 LogActivity.addLog("Main", "ERROR: Face bitmap is null")
                 tvStatus.text = "Error: Failed to get face image"
@@ -208,8 +207,8 @@ class MainActivity : AppCompatActivity() {
     private fun compareFaces(cameraBitmap: Bitmap) {
         scope.launch {
             try {
-                tvStatus.text = "Connecting to Baidu AI..."
-                LogActivity.addLog("Face", "Sending to Baidu API for comparison")
+                tvStatus.text = "Connecting to Aliyun AI..."
+                LogActivity.addLog("Face", "Sending to Aliyun API for comparison")
                 
                 val (score, message) = withContext(Dispatchers.IO) {
                     aliyunFaceHelper?.compareFaces(idCardBitmap!!, cameraBitmap) 
@@ -224,22 +223,22 @@ class MainActivity : AppCompatActivity() {
                     if (message == "Success") {
                         val isMatch = score >= 60.0
                         val resultText = if (isMatch) {
-                            "是同一人（相似度：${"%.1f".format(score)}%）"
+                            "��ͬһ�ˣ����ƶȣ�${"%.1f".format(score)}%��"
                         } else {
-                            "不是同一人（相似度：${"%.1f".format(score)}%）"
+                            "����ͬһ�ˣ����ƶȣ�${"%.1f".format(score)}%��"
                         }
                         tvResult.text = resultText
                         tvResult.setBackgroundColor(
                             if (isMatch) android.graphics.Color.parseColor("#4CAF50")
                             else android.graphics.Color.parseColor("#F44336")
                         )
-                        tvStatus.text = "验证完成"
-                        LogActivity.addLog("Face", "结果: $resultText")
+                        tvStatus.text = "��֤���"
+                        LogActivity.addLog("Face", "���: $resultText")
                     } else {
-                        tvResult.text = "错误：$message"
+                        tvResult.text = "����$message"
                         tvResult.setBackgroundColor(android.graphics.Color.parseColor("#FFC107"))
-                        tvStatus.text = "验证失败"
-                        LogActivity.addLog("ERROR", "API错误: $message")
+                        tvStatus.text = "��֤ʧ��"
+                        LogActivity.addLog("ERROR", "API����: $message")
                     }
                 }
                 
