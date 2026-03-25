@@ -23,12 +23,7 @@ class AliyunFaceHelper {
     private val accessKeySecret = BuildConfig.ALIYUN_ACCESS_KEY_SECRET
     
     private val client: OkHttpClient by lazy {
-        val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
-        }
-        OkHttpClient.Builder()
-            .addInterceptor(logging)
-            .build()
+        OkHttpClient.Builder().build()
     }
     
     suspend fun compareFaces(idCardBitmap: Bitmap, cameraBitmap: Bitmap): Pair<Double, String> {
@@ -80,16 +75,21 @@ class AliyunFaceHelper {
         val response = client.newCall(request).execute()
         val body = response.body?.string() ?: return Pair(0.0, "Empty response")
         
-        val json = JSONObject(body)
-        return if (json.has("Confidence")) {
-            val confidence = json.getDouble("Confidence")
-            Pair(confidence, "Success")
-        } else if (json.has("Code")) {
-            val code = json.getString("Code")
-            val message = json.getString("Message")
-            Pair(0.0, "API Error: $code - $message")
-        } else {
-            Pair(0.0, "Unknown response: $body")
+        return try {
+            val json = JSONObject(body)
+            if (json.has("Data")) {
+                val data = json.getJSONObject("Data")
+                val confidence = data.getDouble("Confidence")
+                Pair(confidence, "Success")
+            } else if (json.has("Code")) {
+                val code = json.getString("Code")
+                val message = json.optString("Message", "Unknown error")
+                Pair(0.0, "API Error: $code - $message")
+            } else {
+                Pair(0.0, "Invalid response format")
+            }
+        } catch (e: Exception) {
+            Pair(0.0, "Parse error: ${e.message}")
         }
     }
     
@@ -126,7 +126,6 @@ class AliyunFaceHelper {
         val outputStream = ByteArrayOutputStream()
         bitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
         val bytes = outputStream.toByteArray()
-        // 使用 NO_WRAP 去掉换行符，阿里云要求
         return Base64.encodeToString(bytes, Base64.NO_WRAP)
     }
     

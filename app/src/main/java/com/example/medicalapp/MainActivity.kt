@@ -223,22 +223,22 @@ class MainActivity : AppCompatActivity() {
                     if (message == "Success") {
                         val isMatch = score >= 60.0
                         val resultText = if (isMatch) {
-                            " «Õ¨“ª»À£®œ‡À∆∂»£∫${"%.1f".format(score)}%£©"
+                            "ÊòØÂêå‰∏Ä‰∫∫ÔºàÁõ∏‰ººÂ∫¶Ôºö${"%.1f".format(score)}%Ôºâ"
                         } else {
-                            "≤ª «Õ¨“ª»À£®œ‡À∆∂»£∫${"%.1f".format(score)}%£©"
+                            "‰∏çÊòØÂêå‰∏Ä‰∫∫ÔºàÁõ∏‰ººÂ∫¶Ôºö${"%.1f".format(score)}%Ôºâ"
                         }
                         tvResult.text = resultText
                         tvResult.setBackgroundColor(
                             if (isMatch) android.graphics.Color.parseColor("#4CAF50")
                             else android.graphics.Color.parseColor("#F44336")
                         )
-                        tvStatus.text = "—È÷§ÕÍ≥…"
-                        LogActivity.addLog("Face", "Ω·π˚: $resultText")
+                        tvStatus.text = "Verification completed"
+                        LogActivity.addLog("Face", "ÁªìÊûú: $resultText")
                     } else {
-                        tvResult.text = "¥ÌŒÛ£∫$message"
+                        tvResult.text = "Error: $message"
                         tvResult.setBackgroundColor(android.graphics.Color.parseColor("#FFC107"))
-                        tvStatus.text = "—È÷§ ß∞‹"
-                        LogActivity.addLog("ERROR", "API¥ÌŒÛ: $message")
+                        tvStatus.text = "Verification failed"
+                        LogActivity.addLog("ERROR", "APIÈîôËØØ: $message")
                     }
                 }
                 
