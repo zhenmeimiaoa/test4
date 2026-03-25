@@ -59,8 +59,8 @@ class AliyunFaceHelper {
             "Timestamp" to getTimestamp(),
             "SignatureVersion" to "1.0",
             "SignatureNonce" to UUID.randomUUID().toString(),
-            "ImageA" to imageA,
-            "ImageB" to imageB
+            "ImageDataA" to imageA,  // 修正参数名
+            "ImageDataB" to imageB   // 修正参数名
         )
         
         val signature = calculateSignature(params, accessKeySecret)
