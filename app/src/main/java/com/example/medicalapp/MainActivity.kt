@@ -49,18 +49,16 @@ class MainActivity : AppCompatActivity() {
         uri?.let { handleImageSelected(it) }
     }
     
-    // 接收人脸拍摄结果 - 从静态变量读取
-    private val faceCaptureLauncher = registerForActivityResult(
+    // 鎺ユ敹浜鸿劯鎷嶆憚缁撴灉 - 浠庨潤鎬佸彉閲忚鍙?    private val faceCaptureLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == RESULT_OK) {
-            // 从静态变量获取 Bitmap
+            // 浠庨潤鎬佸彉閲忚幏鍙?Bitmap
             val faceBitmap = FaceCaptureActivity.capturedFaceBitmap
             faceBitmap?.let {
                 LogActivity.addLog("Main", "Face captured successfully, size: ${it.width}x${it.height}")
                 compareFaces(it)
-                // 清空静态变量避免内存泄漏
-                FaceCaptureActivity.capturedFaceBitmap = null
+                // 娓呯┖闈欐€佸彉閲忛伩鍏嶅唴瀛樻硠婕?                FaceCaptureActivity.capturedFaceBitmap = null
             } ?: run {
                 LogActivity.addLog("Main", "ERROR: Face bitmap is null")
                 tvStatus.text = "Error: Failed to get face image"
@@ -225,22 +223,23 @@ class MainActivity : AppCompatActivity() {
                     
                     if (message == "Success") {
                         val isMatch = score >= 60.0
-                        tvResult.text = if (isMatch) {
-                            "MATCH: Same person (Score: ${score.toInt()})"
+                        val resultText = if (isMatch) {
+                            "是同一人（相似度：${"%.1f".format(score)}%）"
                         } else {
-                            "MISMATCH: Different person (Score: ${score.toInt()})"
+                            "不是同一人（相似度：${"%.1f".format(score)}%）"
                         }
+                        tvResult.text = resultText
                         tvResult.setBackgroundColor(
-                            if (isMatch) android.graphics.Color.GREEN 
-                            else android.graphics.Color.RED
+                            if (isMatch) android.graphics.Color.parseColor("#4CAF50")
+                            else android.graphics.Color.parseColor("#F44336")
                         )
-                        tvStatus.text = "Verification completed"
-                        LogActivity.addLog("Face", "Result: ${if (isMatch) "MATCH" else "MISMATCH"} ($score)")
+                        tvStatus.text = "验证完成"
+                        LogActivity.addLog("Face", "结果: $resultText")
                     } else {
-                        tvResult.text = "API Error: $message"
-                        tvResult.setBackgroundColor(android.graphics.Color.YELLOW)
-                        tvStatus.text = "Verification failed"
-                        LogActivity.addLog("ERROR", "API Error: $message")
+                        tvResult.text = "错误：$message"
+                        tvResult.setBackgroundColor(android.graphics.Color.parseColor("#FFC107"))
+                        tvStatus.text = "验证失败"
+                        LogActivity.addLog("ERROR", "API错误: $message")
                     }
                 }
                 
