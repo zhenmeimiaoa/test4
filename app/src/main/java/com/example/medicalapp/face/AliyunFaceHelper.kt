@@ -35,15 +35,12 @@ class AliyunFaceHelper {
         return withContext(Dispatchers.IO) {
             try {
                 if (accessKeyId.isEmpty() || accessKeySecret.isEmpty()) {
-                    return@withContext Pair(0.0, "Error: Credentials not configured")
+                    Pair(0.0, "Error: Credentials not configured")
+                } else {
+                    val imageA = bitmapToBase64(idCardBitmap)
+                    val imageB = bitmapToBase64(cameraBitmap)
+                    callCompareFaceAPI(imageA, imageB)
                 }
-                
-                val imageA = bitmapToBase64(idCardBitmap)
-                val imageB = bitmapToBase64(cameraBitmap)
-                
-                val result = callCompareFaceAPI(imageA, imageB)
-                result
-                
             } catch (e: Exception) {
                 Pair(0.0, "Exception: ${e.message}")
             }
