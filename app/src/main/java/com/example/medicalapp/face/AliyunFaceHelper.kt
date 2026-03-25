@@ -1,53 +1,48 @@
 package com.example.medicalapp.face
 
 import android.graphics.Bitmap
-import com.aliyun.facebody20191230.Client
-import com.aliyun.facebody20191230.models.CompareFaceAdvanceRequest
-import com.aliyun.teaopenapi.models.Config
-import com.aliyun.teautil.models.RuntimeOptions
+import android.util.Base64
 import com.example.medicalapp.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.ByteArrayInputStream
+import okhttp3.FormBody
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.logging.HttpLoggingInterceptor
+import org.json.JSONObject
 import java.io.ByteArrayOutputStream
+import java.net.URLEncoder
+import java.text.SimpleDateFormat
+import java.util.*
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
 
 class AliyunFaceHelper {
     
-    private val client: Client by lazy {
-        val accessKeyId = BuildConfig.ALIYUN_ACCESS_KEY_ID
-        val accessKeySecret = BuildConfig.ALIYUN_ACCESS_KEY_SECRET
-        
-        if (accessKeyId.isEmpty() || accessKeySecret.isEmpty()) {
-            throw IllegalStateException("Aliyun credentials not configured in local.properties")
+    private val accessKeyId = BuildConfig.ALIYUN_ACCESS_KEY_ID
+    private val accessKeySecret = BuildConfig.ALIYUN_ACCESS_KEY_SECRET
+    
+    private val client: OkHttpClient by lazy {
+        val logging = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
         }
-        
-        val config = Config()
-            .setAccessKeyId(accessKeyId)
-            .setAccessKeySecret(accessKeySecret)
-        config.endpoint = "facebody.cn-shanghai.aliyuncs.com"
-        Client(config)
+        OkHttpClient.Builder()
+            .addInterceptor(logging)
+            .build()
     }
     
     suspend fun compareFaces(idCardBitmap: Bitmap, cameraBitmap: Bitmap): Pair<Double, String> {
         return withContext(Dispatchers.IO) {
             try {
-                val streamA = bitmapToInputStream(idCardBitmap)
-                val streamB = bitmapToInputStream(cameraBitmap)
-                
-                val request = CompareFaceAdvanceRequest()
-                    .setImageURLAObject(streamA)
-                    .setImageURLBObject(streamB)
-                
-                val runtime = RuntimeOptions()
-                val response = client.compareFaceAdvance(request, runtime)
-                
-                val body = response.body
-                if (body != null && body.data != null) {
-                    val confidence = body.data.confidence ?: 0.0
-                    Pair(confidence, "Success")
-                } else {
-                    Pair(0.0, "API Error: Empty response")
+                if (accessKeyId.isEmpty() || accessKeySecret.isEmpty()) {
+                    return@withContext Pair(0.0, "Error: Credentials not configured")
                 }
+                
+                val imageA = bitmapToBase64(idCardBitmap)
+                val imageB = bitmapToBase64(cameraBitmap)
+                
+                val result = callCompareFaceAPI(imageA, imageB)
+                result
                 
             } catch (e: Exception) {
                 Pair(0.0, "Exception: ${e.message}")
@@ -55,10 +50,87 @@ class AliyunFaceHelper {
         }
     }
     
-    private fun bitmapToInputStream(bitmap: Bitmap): ByteArrayInputStream {
+    private fun callCompareFaceAPI(imageA: String, imageB: String): Pair<Double, String> {
+        val url = "https://facebody.cn-shanghai.aliyuncs.com"
+        
+        val params = mutableMapOf(
+            "Action" to "CompareFace",
+            "Version" to "2019-12-30",
+            "Format" to "JSON",
+            "AccessKeyId" to accessKeyId,
+            "SignatureMethod" to "HMAC-SHA1",
+            "Timestamp" to getTimestamp(),
+            "SignatureVersion" to "1.0",
+            "SignatureNonce" to UUID.randomUUID().toString(),
+            "ImageA" to imageA,
+            "ImageB" to imageB
+        )
+        
+        val signature = calculateSignature(params, accessKeySecret)
+        params["Signature"] = signature
+        
+        val formBody = FormBody.Builder().apply {
+            params.forEach { (key, value) ->
+                add(key, value)
+            }
+        }.build()
+        
+        val request = Request.Builder()
+            .url(url)
+            .post(formBody)
+            .build()
+        
+        client.newCall(request).execute().use { response ->
+            val body = response.body?.string() ?: return Pair(0.0, "Empty response")
+            
+            val json = JSONObject(body)
+            if (json.has("Confidence")) {
+                val confidence = json.getDouble("Confidence")
+                Pair(confidence, "Success")
+            } else if (json.has("Code")) {
+                val code = json.getString("Code")
+                val message = json.getString("Message")
+                Pair(0.0, "API Error: $code - $message")
+            } else {
+                Pair(0.0, "Unknown response: $body")
+            }
+        }
+    }
+    
+    private fun calculateSignature(params: Map<String, String>, secret: String): String {
+        val sortedParams = params.toSortedMap()
+        val queryString = sortedParams.map { (key, value) ->
+            "${percentEncode(key)}=${percentEncode(value)}"
+        }.joinToString("&")
+        
+        val stringToSign = "POST&${percentEncode("/")}&${percentEncode(queryString)}"
+        val signKey = "$secret&"
+        
+        val mac = Mac.getInstance("HmacSHA1")
+        mac.init(SecretKeySpec(signKey.toByteArray(), "HmacSHA1"))
+        val signature = mac.doFinal(stringToSign.toByteArray())
+        
+        return Base64.encodeToString(signature, Base64.DEFAULT).trim()
+    }
+    
+    private fun percentEncode(value: String): String {
+        return URLEncoder.encode(value, "UTF-8")
+            .replace("+", "%20")
+            .replace("*", "%2A")
+            .replace("%7E", "~")
+    }
+    
+    private fun getTimestamp(): String {
+        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
+        sdf.timeZone = TimeZone.getTimeZone("UTC")
+        return sdf.format(Date())
+    }
+    
+    private fun bitmapToBase64(bitmap: Bitmap): String {
         val outputStream = ByteArrayOutputStream()
         bitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
-        return ByteArrayInputStream(outputStream.toByteArray())
+        val bytes = outputStream.toByteArray()
+        return Base64.encodeToString(bytes, Base64.DEFAULT)
     }
     
     fun close() {}
