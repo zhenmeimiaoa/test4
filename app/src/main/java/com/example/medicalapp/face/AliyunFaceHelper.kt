@@ -59,8 +59,8 @@ class AliyunFaceHelper {
             "Timestamp" to getTimestamp(),
             "SignatureVersion" to "1.0",
             "SignatureNonce" to UUID.randomUUID().toString(),
-            "ImageDataA" to imageA,  // 修正参数名
-            "ImageDataB" to imageB   // 修正参数名
+            "ImageDataA" to imageA,
+            "ImageDataB" to imageB
         )
         
         val signature = calculateSignature(params, accessKeySecret)
@@ -126,7 +126,8 @@ class AliyunFaceHelper {
         val outputStream = ByteArrayOutputStream()
         bitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
         val bytes = outputStream.toByteArray()
-        return Base64.encodeToString(bytes, Base64.DEFAULT)
+        // 使用 NO_WRAP 去掉换行符，阿里云要求
+        return Base64.encodeToString(bytes, Base64.NO_WRAP)
     }
     
     fun close() {}
