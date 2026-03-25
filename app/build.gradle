@@ -3,7 +3,6 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
-// 读取 local.properties
 def localProperties = new Properties()
 def localPropertiesFile = rootProject.file('local.properties')
 if (localPropertiesFile.exists()) {
@@ -23,7 +22,6 @@ android {
         versionCode 1
         versionName "1.0"
         
-        // 从 local.properties 读取密钥生成 BuildConfig
         buildConfigField "String", "ALIYUN_ACCESS_KEY_ID", "\"${localProperties.getProperty('aliyun.accessKeyId', '')}\""
         buildConfigField "String", "ALIYUN_ACCESS_KEY_SECRET", "\"${localProperties.getProperty('aliyun.accessKeySecret', '')}\""
     }
@@ -60,9 +58,8 @@ dependencies {
     implementation 'com.google.mlkit:text-recognition:16.0.0'
     implementation 'com.google.mlkit:text-recognition-chinese:16.0.0'
     
-    implementation 'com.aliyun:facebody20191230:4.0.9'
-    implementation 'com.aliyun:tea-openapi:0.2.12'
-    implementation 'com.aliyun:tea-util:0.2.21'
+    // 阿里云人脸比对 - 使用最新版本
+    implementation 'com.aliyun:facebody20191230:4.0.14'
     
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
 }
